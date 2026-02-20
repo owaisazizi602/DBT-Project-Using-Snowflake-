@@ -24,4 +24,5 @@ This pipeline demonstrates end-to-end ETL/ELT, incremental modeling, handling of
 
 
 
-![Uploading ada21b52-d346-43d8-94f7-685f712a9966.png…]()
+<img width="1536" height="1024" alt="ada21b52-d346-43d8-94f7-685f712a9966" src="https://github.com/user-attachments/assets/84c341ca-2ca7-4928-af76-ddd9eb47d931" />
+

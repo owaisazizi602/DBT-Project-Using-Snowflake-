@@ -1,0 +1,194 @@
+-- DDL For My Tables
+
+
+use database AIRBNB;
+use schema AIRBNB.staging;
+CREATE OR REPLACE TABLE HOSTS (
+    host_id NUMBER,
+    host_name STRING,
+    host_since DATE,
+    is_superhost BOOLEAN,
+    response_rate NUMBER,
+    created_at TIMESTAMP,
+    PRIMARY KEY (host_id)
+);
+
+CREATE OR REPLACE TABLE LISTINGS (
+    listing_id NUMBER,
+    host_id NUMBER,
+    property_type STRING,
+    room_type STRING,
+    city STRING,
+    country STRING,
+    accommodates NUMBER,
+    bedrooms NUMBER,
+    bathrooms NUMBER,
+    price_per_night NUMBER,
+    created_at TIMESTAMP,
+    PRIMARY KEY (listing_id)
+);
+
+CREATE OR REPLACE TABLE BOOKINGS (
+    booking_id STRING,
+    listing_id NUMBER,
+    booking_date TIMESTAMP,
+    nights_booked NUMBER,
+    booking_amount NUMBER,
+    cleaning_fee NUMBER,
+    service_fee NUMBER,
+    booking_status STRING,
+    created_at TIMESTAMP,
+    PRIMARY KEY (booking_id)
+);
+
+
+----------------------------------------------------------------------------------
+
+
+'Creating the connection with IAM to get access to S3 via Snowflake';
+
+
+CREATE OR REPLACE STORAGE INTEGRATION my_s3_integration
+TYPE = EXTERNAL_STAGE
+STORAGE_PROVIDER = S3
+ENABLED = TRUE
+STORAGE_AWS_ROLE_ARN = 'arn:aws:iam::935244547666:role/snowpipe_s3'
+STORAGE_ALLOWED_LOCATIONS = ('s3://snow-bucket-owais/source/');
+
+
+DESC INTEGRATION my_s3_integration;
+
+--Creating stage for S3
+CREATE OR REPLACE STAGE my_s3_stage
+STORAGE_INTEGRATION = my_s3_integration
+URL = 's3://snow-bucket-owais/source/';
+
+LIST @my_s3_stage;
+
+
+'Creating the fileformat for ou files in s3'
+CREATE OR REPLACE FILE FORMAT my_csv_format
+TYPE = CSV
+SKIP_HEADER = 1
+FIELD_OPTIONALLY_ENCLOSED_BY = '"';
+
+' Want to check your file formats? '
+show file formats;
+
+'Creating the snowpipe for bookings table.'
+CREATE OR REPLACE PIPE bookings_pipe
+AUTO_INGEST = TRUE
+AS
+COPY INTO bookings
+FROM @my_s3_stage
+PATTERN = '.*bookings.*\.csv'
+FILE_FORMAT = my_csv_format
+ON_ERROR = 'CONTINUE';
+
+
+
+'Creating the snowpipe for the hosts table'
+
+CREATE OR REPLACE PIPE hosts_pipe
+AUTO_INGEST = TRUE
+AS
+COPY INTO hosts
+FROM @my_s3_stage
+PATTERN = '.*hosts.*\.csv'
+FILE_FORMAT = my_csv_format
+ON_ERROR = 'CONTINUE';
+
+
+
+'Creating the snowpipe for listing table'
+CREATE OR REPLACE PIPE listings_pipe
+AUTO_INGEST = TRUE
+AS
+COPY INTO listings
+FROM @my_s3_stage
+PATTERN = '.*listings.*\.csv'
+FILE_FORMAT = my_csv_format
+ON_ERROR = 'CONTINUE';
+
+
+'Get Notification Channel'
+SHOW PIPES;
+
+
+
+-----------------------------------------------------------------------
+
+use database AIRBNB;
+use schema AIRBNB.staging;
+SELECT
+    SYSTEM$PIPE_STATUS('bookings_pipe');
+SELECT
+    *
+FROM
+    TABLE(
+        INFORMATION_SCHEMA.COPY_HISTORY(
+            TABLE_NAME => 'BOOKINGS',
+            START_TIME => DATEADD(HOUR, -1, CURRENT_TIMESTAMP())
+        )
+    );
+SELECT
+    COUNT(*)
+FROM
+    bookings;
+'If the pipe somehow stops and you want to resume it again.' ALTER PIPE bookings_pipe RESUME;
+select
+    *
+from
+    listings;
+SELECT
+    COUNT(*)
+FROM
+    listings;
+SELECT
+    COUNT(*)
+FROM
+    hosts;
+SELECT
+    *
+FROM
+    TABLE(
+        INFORMATION_SCHEMA.COPY_HISTORY(
+            TABLE_NAME => 'listings',
+            START_TIME => DATEADD(HOUR, -1, CURRENT_TIMESTAMP())
+        )
+    );
+SELECT
+    *
+FROM
+    TABLE(
+        INFORMATION_SCHEMA.COPY_HISTORY(
+            TABLE_NAME => 'hosts',
+            START_TIME => DATEADD(HOUR, -1, CURRENT_TIMESTAMP())
+        )
+    );
+-- Check status
+SELECT
+    SYSTEM$PIPE_STATUS('bookings_pipe');
+    --if you want TO pause the pipe
+    alter pipe bookings_pipe
+SET
+    PIPE_EXECUTION_PAUSED = true;
+    --If you want to run the pipe again
+    alter pipe bookings_pipe
+SET
+    PIPE_EXECUTION_PAUSED = false;
+--if you want TO pause the pipe
+    alter pipe listings_pipe
+SET
+    PIPE_EXECUTION_PAUSED = true;
+    --if you want TO pause the pipe
+    alter pipe hosts_pipe
+SET
+    PIPE_EXECUTION_PAUSED = true;
+
+
+
+
+
+
+

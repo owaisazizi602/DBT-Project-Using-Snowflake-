@@ -18,3 +18,10 @@ Version Control & Automation: The project is maintained with Git and GitHub, wit
 Tech Stack: Snowflake, dbt, AWS S3, Git, GitHub, GitHub Actions
 
 This pipeline demonstrates end-to-end ETL/ELT, incremental modeling, handling of late-arriving data, and creation of analytics-ready gold layer tables in a cloud-native environment.
+
+
+
+
+
+
+![Uploading ada21b52-d346-43d8-94f7-685f712a9966.png…]()

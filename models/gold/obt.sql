@@ -39,3 +39,4 @@ Comment = For handling late arrival data back of 2 days ago
 {% if is_incremental() %}
 where SILVER_bookings.created_at >= (select dateadd(day, -2, max(created_at)) from {{ this }})
 {% endif %}
+

@@ -1,5 +1,5 @@
 
-{{ config( materialized='incremental'  ) }} 
+{{ config( materialized='incremental') }} 
 
 select * from {{ source('staging','bookings') }} 
 
